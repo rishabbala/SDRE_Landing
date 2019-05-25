@@ -1,0 +1,11 @@
+<launch>
+    <include file="$(find mavros)/launch/apm.launch">
+        <arg name="my_ns" value="rover" /> 
+        <arg name="my_url" value="udp://:14560@" />
+    </include>
+
+    <include file="$(find mavros)/launch/apm.launch">
+        <arg name="my_ns" value="drone" /> 
+        <arg name="my_url" value="udp://:14550@" />
+    </include>
+</launch>
