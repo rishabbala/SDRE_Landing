@@ -50,6 +50,8 @@ add_message_files(
   FILES
   TargetInfo.msg
   Contour.msg
+  kalman.msg
+  QR.msg
 )
 
 ## Generate services in the 'srv' folder

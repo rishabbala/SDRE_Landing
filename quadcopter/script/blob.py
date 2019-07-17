@@ -19,7 +19,7 @@ pub = rospy.Publisher('/landing_target_info_new', TargetInfo, queue_size=10)
 now = rospy.get_time()
 
 global info, flag_imageshow, cvFrame
-cvFrame = np.zeros((4096,2160,3), np.uint8)
+cvFrame = np.zeros((500,500,3), np.uint8)
 info = TargetInfo()
 flag_imageshow=1
 
@@ -55,7 +55,6 @@ def find_blob(blob):
 
 def receiveimage(data):
     global info, flag_imageshow, cvFrame
-    rate = rospy.Rate(50)
     bridge=CvBridge()
     cvFrame = bridge.imgmsg_to_cv2(data,"passthrough")
 
@@ -85,8 +84,10 @@ def color_det(event):
     info.time = now
     #rospy.loginfo(info.time)
     pub.publish(info)
-    ##if flag_imageshow == 1:
-    #    cv2.imshow('detection',frame)
+    #re = cv2.resize(frame, (500, 500), interpolation = cv2.INTER_AREA) 
+    
+    #if flag_imageshow == 1:
+    #    cv2.imshow('detection',re)
     #    cv2.waitKey(1)
     #k = cv2.waitKey(5) & 0xff
     #if k == 27:
@@ -96,7 +97,7 @@ def color_det(event):
 
 def listener():
     rospy.Subscriber('/camera_on_quad/images', Image, receiveimage)
-    timer=rospy.Timer(rospy.Duration(100/1000.0),color_det)
+    timer=rospy.Timer(rospy.Duration(20/1000.0),color_det)
     rospy.spin()
 
 if __name__ == '__main__':

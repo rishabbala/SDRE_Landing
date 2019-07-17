@@ -25,7 +25,6 @@ yaw = 0.0
 msg = AttitudeTarget()
 #[10,-10,0]    #ardu
 
-####    Mavros global(x,y) = Body_fix(y,x)
 goal = np.array([50.0, 5.0, 0.0])
 goal_body = np.array([0.0, 0.0, 0.0])
 

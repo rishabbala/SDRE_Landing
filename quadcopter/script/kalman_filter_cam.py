@@ -102,61 +102,70 @@ def kalman(timer):
     if detect == 0:
         #now_kal = timer()
         
-        Q = np.array([[0, 0, 0, 0]
-                    ,[0, 0, 0, 0]
-                    ,[0, 0, 0, 0]
-                    ,[0, 0, 0, 0]])
-        X[0] = float(X[0]) + float(X[1])*del_t
-        X[2] = float(X[2]) + float(X[3])*del_t
+        Q = np.array([[np.random.normal(0, 1), 0, 0, 0]
+                    ,[0, np.random.normal(0, 1), 0, 0]
+                    ,[0, 0, np.random.normal(0, 1), 0]
+                    ,[0, 0, 0, np.random.normal(0, 1)]])
+        #X[0] = float(X[0]) + float(X[1])*del_t
+        #X[2] = float(X[2]) + float(X[3])*del_t
     else:
-        v1 = float(X[1])
-        v2 = float(X[3])
-        #now_kal = timer()
-        A = np.array([[1, (del_t), 0, 0]
-                    ,[0, 1, 0, 0]
-                    ,[0, 0, 1, (del_t)]
-                    ,[0, 0, 0, 1]])
-
-        X_new_pred = np.dot(A, X)
-        
-        P_k = np.dot(A, P)
-        P_k = np.dot(P_k, A.transpose())
         Q = np.array([[np.random.normal(0, 4), 0, 0, 0]
                     ,[0, np.random.normal(0, 1), 0, 0]
                     ,[0, 0, np.random.normal(0, 4), 0]
                     ,[0, 0, 0, np.random.normal(0, 1)]])
-            
-        P_k = P_k + Q
+    v1 = float(X[1])
+    v2 = float(X[3])
+    #now_kal = timer()
+    A = np.array([[1, (del_t), 0, 0]
+                ,[0, 1, 0, 0]
+                ,[0, 0, 1, (del_t)]
+                ,[0, 0, 0, 1]])
+
+    X_new_pred = np.dot(A, X)
+    
+    P_k = np.dot(A, P)
+    P_k = np.dot(P_k, A.transpose())
+    Q = np.array([[np.random.normal(0, 3), 0, 0, 0]
+                ,[0, np.random.normal(0, 1), 0, 0]
+                ,[0, 0, np.random.normal(0, 3), 0]
+                ,[0, 0, 0, np.random.normal(0, 1)]])
         
-        mu_exp = np.dot(H, X_new_pred)
-        std_dev_exp = np.dot(H.transpose(), P_k)
-        std_dev_exp = np.dot(std_dev_exp, H)
+    P_k = P_k + Q
+    
+    mu_exp = np.dot(H, X_new_pred)
+    std_dev_exp = np.dot(H.transpose(), P_k)
+    std_dev_exp = np.dot(std_dev_exp, H)
 
-        KG = np.dot(np.dot(std_dev_exp, H.transpose()), np.linalg.inv(std_dev_exp + goal_pred_var))
+    KG = np.dot(np.dot(std_dev_exp, H.transpose()), np.linalg.inv(std_dev_exp + goal_pred_var))
 
-        X_new = X_new_pred + np.dot(KG, (np.dot(H,goal_pred) - np.dot(H,mu_exp)))
-        
-        X = X_new
-        #X[0] = float(X_new[0])
-        #X[1] = 0.65*float(X[1])*(now_kal-init)/(now_kal+0.001) + 0.35*v1*(1-(now_kal-init)/(now_kal+0.001))
-        #X[2] = float(X_new[2])
-        #X[3] = 0.65*float(X[3])*(now_kal-init)/(now_kal+0.001) + 0.35*v2*(1-(now_kal-init)/(now_kal+0.001))
+    X_new = X_new_pred + np.dot(KG, (np.dot(H,goal_pred) - np.dot(H,mu_exp)))
+    
+    X = X_new
+    #X[0] = float(X_new[0])
+    #X[1] = 0.65*float(X[1])*(now_kal-init)/(now_kal+0.001) + 0.435825*v1*(1-(now_kal-init)/(now_kal+0.001))
+    #X[2] = float(X_new[2])
+    #X[3] = 0.65*float(X[3])*(now_kal-init)/(now_kal+0.001) + 0.435825*v2*(1-(now_kal-init)/(now_kal+0.001))
 
-        #rospy.loginfo("X %s", X)
-        #rospy.loginfo("DEL_T OUT %s",del_t)
+    #rospy.loginfo("X %s", X)
+    #rospy.loginfo("DEL_T OUT %s",del_t)
 
-        #now_kal_p = timer()
-        
-        P = std_dev_exp - np.dot(KG, std_dev_exp)
+    #now_kal_p = timer()
+
+    ##      initial drone ht 0.194387 changed now to 0 (IMPO)
+            ##      rover height 0.43582
+            ##      ==> landing height = 0.43583+0
+    
+    P = std_dev_exp - np.dot(KG, std_dev_exp)
     msg.goal.x = float(X[0])
     msg.goal.y = float(X[2])
-    msg.goal.z = 0.31
+    msg.goal.z = 0.43582
     msg.vel.x = float(X[1])
     msg.vel.y = float(X[3])
     msg.vel.z = 0.0
     msg.posn.x = x
     msg.posn.y = y
     msg.posn.z = z
+    msg.detected = detect
     pub.publish(msg)
         #rate.sleep()
 
@@ -208,8 +217,8 @@ def ReceiveTar(data):
 
             img = np.array([[x1-xn]
                         ,[x2-yn]
-                        ,[0.3185]])
-            img = np.dot(R.transpose(), img)
+                        ,[0.43582]])
+            #img = np.dot(R.transpose(), img)
             #rospy.loginfo("GOAL VEL %s %s %s %s", v1, v2, vx, vy)
             #rospy.loginfo("GOAL POS %s %s", x1,x2)
             #goal_pred_var = np.array([[0, 0, 0, 0]
@@ -218,23 +227,24 @@ def ReceiveTar(data):
             #                        ,[0, 0, 0, 0]])
             #1.1**abs(float(goal_pred[0])/(z+0.00001))+abs(v_pitch*v_roll))
             goal_pred_var = np.array([[np.random.normal(0, 0.3*1.1**(float(img[0])*0.25/(z+0.0001))), 0, 0, 0]
-                                    ,[0, np.random.normal(0, 1), 0, 0]
+                                    ,[0, np.random.normal(0, 1+12*(abs(v_pitch)+abs(v_roll))+0.5*abs(v_x*v_y)), 0, 0]
                                     ,[0, 0, np.random.normal(0, 0.3*1.1**(float(img[1])*0.25/(z+0.0001))), 0]
-                                    ,[0, 0, 0, np.random.normal(0, 1)]])   
+                                    ,[0, 0, 0, np.random.normal(0, 1+12*(abs(v_pitch)+abs(v_roll))+0.5*abs(v_x*v_y))]])   
 
             now_cam_p = data.time
             i+=1
         
 def get_position(xt, yt, xn, yn, R):
+    global vert_fov, hori_fov
     key_points_dir_body = np.array([[cos(np.pi/4-vert_fov)*cos(hori_fov), cos(np.pi/4-vert_fov)*cos(-hori_fov), cos(np.pi/4+vert_fov)*cos(hori_fov), cos(np.pi/4+vert_fov)*cos(-hori_fov), cos(np.pi/4)]
                                     ,[sin(hori_fov), sin(-hori_fov), sin(hori_fov), sin(-hori_fov), 0]
                                     ,[-sin(np.pi/4-vert_fov)*cos(hori_fov), -sin(np.pi/4-vert_fov)*cos(-hori_fov), -sin(np.pi/4+vert_fov)*cos(hori_fov), -sin(np.pi/4+vert_fov)*cos(-hori_fov), -sin(np.pi/4)]])
     key_points_dir_global = np.dot(R, key_points_dir_body)
 
     for i in range(len(key_points_dir_global[0])):
-        key_points_dir_global[0][i] = float(key_points_dir_global[0][i])*(0.3185-z)/float(key_points_dir_global[2][i]) + xn
-        key_points_dir_global[1][i] = float(key_points_dir_global[1][i])*(0.3185-z)/float(key_points_dir_global[2][i]) + yn
-        key_points_dir_global[2][i] = 0.3185
+        key_points_dir_global[0][i] = float(key_points_dir_global[0][i])*(0.43582-z)/float(key_points_dir_global[2][i]) + xn
+        key_points_dir_global[1][i] = float(key_points_dir_global[1][i])*(0.43582-z)/float(key_points_dir_global[2][i]) + yn
+        key_points_dir_global[2][i] = 0.43582
 
     M1 = np.array([[float(key_points_dir_global[0][0]), float(key_points_dir_global[1][0]), 1, 0, 0, 0, 0, 0, 0]
                 ,[0, 0, 0, float(key_points_dir_global[0][0]), float(key_points_dir_global[1][0]), 1, 0, 0, 0]
@@ -275,7 +285,7 @@ def get_velocity(event):
     v1_prev = v1
     v2_prev = v2    
 
-    rospy.loginfo("INFO %s %s %s", v1, w1, u1_prev)
+    #rospy.loginfo("INFO %s %s %s", v1, w1, u1_prev)
 
     u1_prev = w1
     u2_prev = w2

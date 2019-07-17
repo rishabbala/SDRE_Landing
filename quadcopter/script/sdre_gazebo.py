@@ -21,8 +21,7 @@ pub = rospy.Publisher("/drone/mavros/setpoint_raw/attitude", AttitudeTarget, que
 roll = 0.0
 pitch = 0.0
 yaw = 0.0
-
-init_height = 10
+detect = 1
 
 msg = AttitudeTarget()
 
@@ -75,7 +74,7 @@ def land():
 
 def sdre():
     while not rospy.is_shutdown():
-        global x, y, z, roll, pitch, yaw, vel_rover, vel_drone_rot, vel_drone_trans, head, now_p, error_head_prev, goal, goal_body, v_x, v_y, v_z, Rot_body_to_inertial, Rot_inertial_to_body
+        global detect, x, y, z, roll, pitch, yaw, vel_rover, vel_drone_rot, vel_drone_trans, head, now_p, error_head_prev, goal, goal_body, v_x, v_y, v_z, Rot_body_to_inertial, Rot_inertial_to_body
         #rospy.loginfo("GOAL_GLOBAL %s", goal) 
         goal_body[0] = goal[0] - x
         goal_body[1] = goal[1] - y
@@ -89,18 +88,18 @@ def sdre():
         #vel_rover = np.dot(Rot,vel_rover)       ####    Velocity transformations to be done
         #vel_rover_body = [vel_rover[1],vel_rover[0],vel_rover[2]]
 
-        Q = np.array([[1+goal_body[0]**2, 0, 0, 0, 0, 0]
-                    ,[0, abs(25*(vel_rover[0]-v_x)/(0.001+0.01*goal_body[0]))+2, 0, 0, 0, 0]
-                    ,[0, 0, 1+goal_body[1]**2, 0, 0, 0]
-                    ,[0, 0, 0, abs(25*(vel_rover[1]-v_y)/(0.001+0.01*goal_body[1]))+2, 0, 0]
-                    ,[0, 0, 0, 0, 1+(30*goal_body[2]/sqrt(0.01+goal_body[0]**2+goal_body[1]**2))**2, 0]
-                    ,[0, 0, 0, 0, 0, abs(goal_body[0]*goal_body[1])]])
+        Q = np.array([[((5*goal_body[0])**2)/abs(goal_body[2]+0.0001)+1, 0, 0, 0, 0, 0]
+                ,[0, abs(150*(0.5+abs(goal_body[2]))*(vel_rover[0]-v_x)/(0.001+0.1*abs(goal_body[0]))), 0, 0, 0, 0]
+                ,[0, 0, ((5*goal_body[1])**2)/abs(goal_body[2]+0.0001)+1, 0, 0, 0]
+                ,[0, 0, 0, abs(150*(0.5+abs(goal_body[2]))*(vel_rover[1]-v_y)/(0.001+0.1*abs(goal_body[1]))), 0, 0]
+                ,[0, 0, 0, 0, 1+(10*goal_body[2]/sqrt(0.01+0.01*(goal_body[0]**2)+0.01*(goal_body[1]**2)))**2, 0]
+                ,[0, 0, 0, 0, 0, 1/abs(goal_body[2]+0.001)]])
 
-        R = np.array([[80, 0, 0]
-                    ,[0, 5000, 0]   #Pitch
-                    ,[0, 0, 5000]]) #Roll
+        R = np.array([[800, 0, 0]
+                    ,[0, 75000, 0]   #Pitch
+                    ,[0, 0, 75000]]) #Roll
 
-        #rospy.loginfo("MATRIX %s", Q)
+        rospy.loginfo("MATRIX %s", Q)
 
         ###     Calculation for control done in body fixed frame
         X = np.array([[goal_body[0]],[vel_rover[0]-v_x],[goal_body[1]],[vel_rover[1]-v_y],[goal_body[2]],[vel_rover[2]-v_z]])
@@ -114,27 +113,52 @@ def sdre():
         u = np.dot(u,P)
         u = np.dot(u,X)
 
-        u[0] = (u[0]*1.5 + 14.7)/29.4
+        u0 = float(u[0])
+        u1 = float(u[1])
+        u2 = float(u[2])
 
-        rospy.loginfo("Inputs %s", u)
+        u0 = (u0*1.5 + 14.7)/29.4
         ##15 deg max cutoff at 10
-        if u[0]>1:
-            u[0] = 1
-        if u[0]<0:
-            u[0] = 0
-        if u[1]>6*np.pi/180:
-            u[1] = 6*np.pi/180
-        if u[1]<-6*np.pi/180:
-            u[1] = -6*np.pi/180
-        if u[2]>6*np.pi/180:
-            u[2] = 6*np.pi/180
-        if u[2]<-6*np.pi/180:
-            u[2] = -6*np.pi/180
-
+        if u0>1:
+            u0 = 1
+        if u0<0:
+            u0 = 0
         
+        if Q[0][0]>Q[1][1]:
+            if u1>10*np.pi/180:
+                u1 = 10*np.pi/180
+            if u1<-10*np.pi/180:
+                u1 = -10*np.pi/180
+        else:
+            if u1>5*np.pi/180:
+                u1 = 5*np.pi/180
+            if u1<-5*np.pi/180:
+                u1 = -5*np.pi/180
+
+        if Q[2][2]>Q[3][3]:
+            if u2>10*np.pi/180:
+                u2 = 10*np.pi/180
+            if u2<-10*np.pi/180:
+                u2 = -10*np.pi/180
+        else:
+            if u2>5*np.pi/180:
+                u2 = 5*np.pi/180
+            if u2<-5*np.pi/180:
+                u2 = -5*np.pi/180
+
+        #rospy.loginfo("INFO %s %s", sqrt(goal_body[0]**2+goal_body[1]**2), abs(goal_body[2]))
+        if sqrt(goal_body[0]**2+goal_body[1]**2)<0.8 and abs(goal_body[2])<1:
+            rospy.loginfo("LAND")
+            u0 = 0.0
+            u1 = 0.0
+            u2 = 0.0
+
+
         now = time.time()
 
-        quater = tf.transformations.quaternion_from_euler(u[2],u[1],yaw+np.pi/2) #0
+        #rospy.loginfo("Inputs %s %s %s", u0, u1, u2)
+
+        quater = tf.transformations.quaternion_from_euler(u2,u1,yaw+np.pi/2) #0
         msg.header = Header()
         msg.type_mask = 0
         msg.orientation.x = quater[0]
@@ -144,7 +168,7 @@ def sdre():
         msg.body_rate.x = 0.0
         msg.body_rate.y = 0.0
         msg.body_rate.z = 0.0
-        msg.thrust = u[0]
+        msg.thrust = u0
 
         ##VELOCITIES HERE
 
@@ -205,10 +229,11 @@ def callback(info):
 
 
 def ReceiveTar(info):
-    global goal, vel_rover, Rot_inertial_to_body
+    global goal, vel_rover, Rot_inertial_to_body, detect
     goal[0] = info.goal.x
     goal[1] = info.goal.y
-    goal[2] = info.goal.z
+    goal[2] = 0.435
+    detect = info.detected
     v1 = info.vel.x
     v2 = info.vel.y
     v = np.array([[v1]

@@ -74,7 +74,7 @@ def receiveimage(data):
     global x_velocity,y_velocity,roll,pitch,yaw,out,xval,yval,xsig,ysig,sig1,sig2,wval,wsig,x_velocity,y_velocity,alt,a_orig,cvFrame,flag_started_vis,a,b,c,d,flag_tracking,xt_image,yt_image,width,height,flag_detected,flag_imageshow,flag_apriltag
     bridge=CvBridge()
     orig_img = bridge.imgmsg_to_cv2(data,"passthrough")
-    cvFrame = orig_img
+    cvFrame = orig_img ##cv2.flip(orig_img, 0)
     mask_red=segment_colour(cvFrame)
     loct=find_blob(mask_red)
     x,y,w,h=loct
@@ -157,93 +157,96 @@ def kalmanEst(event):
     #print flag_tracking
     dt=0.033
     F[0][0]=1;F[0][2]=dt;F[1][1]=1;F[1][3]=dt;F[2][2]=1;F[3][3]=1;F[4][4]=1;F[5][5]=1
-    if(flag_first_detection==1):#First Detection
-        notFoundCount=0
-        #print "in_first"
-        flag_tracking=0
-        X=np.zeros((6,1))
-        X[0]=center.x;X[1]=center.y;X[2]=0;X[3]=0;X[4]=contour.width;X[5]=contour.height
-        P=np.zeros((6,6))
-        P[0][0]= 1;P[1][1]= 1;P[2][2]= 1;P[3][3]= 1;P[4][4]= 1;P[5][5]= 1
- 
-   
-    if(flag_tracking==1):
-        X=np.dot(F,X)
-        if(X[0][0]>=640):
-            X[0][0]=640
-        if(X[1][0]>=480):
-            X[1][0]=480
-        if(X[0][0]<=0):
-            X[0][0]=0
-        if(X[1][0]<=0):
-            X[1][0]=0
-
-        P=np.dot(np.dot(F,P),F.T) + Process_noise_cov
-        #P = (F * P *F.T) + Process_noise_cov
-        #print "in_pred"
-     
-    
-    #print flag_detected,xt_image,yt_image,width,height
-    if(flag_detected==1):
-        flag_tracking=1
-        notFoundCount=0
-        #print "in detected 1"
-    elif(flag_detected==0):
-        if(flag_tracking==1):
-            notFoundCount=notFoundCount+1
-        if(notFoundCount>=9000):
+    rate = rospy.Rate(25)
+    while not rospy.is_shutdown():
+        if(flag_first_detection==1):#First Detection
+            notFoundCount=0
+            #print "in_first"
             flag_tracking=0
+            X=np.zeros((6,1))
+            X[0]=center.x;X[1]=center.y;X[2]=0;X[3]=0;X[4]=contour.width;X[5]=contour.height
+            P=np.zeros((6,6))
+            P[0][0]= 1;P[1][1]= 1;P[2][2]= 1;P[3][3]= 1;P[4][4]= 1;P[5][5]= 1
     
+    
+        if(flag_tracking==1):
+            X=np.dot(F,X)
+            if(X[0][0]>=640):
+                X[0][0]=640
+            if(X[1][0]>=480):
+                X[1][0]=480
+            if(X[0][0]<=0):
+                X[0][0]=0
+            if(X[1][0]<=0):
+                X[1][0]=0
+
+            P=np.dot(np.dot(F,P),F.T) + Process_noise_cov
+            #P = (F * P *F.T) + Process_noise_cov
+            #print "in_pred"
+        
+        
+        #print flag_detected,xt_image,yt_image,width,height
+        if(flag_detected==1):
+            flag_tracking=1
+            notFoundCount=0
+            #print "in detected 1"
+        elif(flag_detected==0):
+            if(flag_tracking==1):
+                notFoundCount=notFoundCount+1
+            if(notFoundCount>=9000):
+                flag_tracking=0
+        
 
 
 
-      
-     
-       
-    if(flag_detected==1):
-        Z[0]=xt_image;Z[1]=yt_image;Z[2]=width;Z[3]=height
-        Zpred = np.dot(H,X)
-        Innov = Z-Zpred
-        S = np.dot(np.dot(H,P),H.T) + Meas_noise_cov
-        W = np.dot(np.dot(P,H.T),np.linalg.inv(S))
-        X = X+ np.dot(W,Innov)
-        P=P-np.dot(np.dot(W,H),P)
-           
-    last_time=now_time
-    a=int(X[0][0])
-    b=int(X[1][0])
-    c=int(X[4][0])
-    d=int(X[5][0])
-    info = TargetInfo()
-    contour_pred = Contour()
-    center = Point32()
-    #print "center_x:",a,"center_y:",b,"width:",c,"height:",d,"xdot:",X[2][0],"ydot:",X[3][0],"alt:",alt
+        
+        
+        
+        if(flag_detected==1):
+            Z[0]=xt_image;Z[1]=yt_image;Z[2]=width;Z[3]=height
+            Zpred = np.dot(H,X)
+            Innov = Z-Zpred
+            S = np.dot(np.dot(H,P),H.T) + Meas_noise_cov
+            W = np.dot(np.dot(P,H.T),np.linalg.inv(S))
+            X = X+ np.dot(W,Innov)
+            P=P-np.dot(np.dot(W,H),P)
+            
+        last_time=now_time
+        a=int(X[0][0])
+        b=int(X[1][0])
+        c=int(X[4][0])
+        d=int(X[5][0])
+        info = TargetInfo()
+        contour_pred = Contour()
+        center = Point32()
+        #print "center_x:",a,"center_y:",b,"width:",c,"height:",d,"xdot:",X[2][0],"ydot:",X[3][0],"alt:",alt
+        
     
-   
-    #cv2.rectangle(cvFrame, (x, y), (x + int(X[4][0]), y + int(X[5][0])), 255, 2)
-    #cv2.circle(cvFrame, (int(X[0][0]), int(X[1][0])), 3, (0, 110, 255), -1)
-    
-    contour_pred.center.x = X[0][0]
-    contour_pred.center.y=X[1][0]
-    contour_pred.width=X[4][0]
-    contour_pred.height=X[5][0]
-    info.contour = contour_pred
-    info.detected=flag_detected
-    info.apriltag=flag_apriltag
-    info.tracking=flag_tracking
-    info_pub.publish(info)
-    #measurement.publish(measured_pub)
-    
-    #cv2.imshow('img',cvFrame)
-    #cv2.waitKey(1)
-    
-    #contour_pub.publish(rosFrame)
-    
-    #k = cv2.waitKey(5) & 0xff
-    #if k == 27:
-    #    break
-    #cv2.destroyAllWindows()
-    
+        #cv2.rectangle(cvFrame, (x, y), (x + int(X[4][0]), y + int(X[5][0])), 255, 2)
+        #cv2.circle(cvFrame, (int(X[0][0]), int(X[1][0])), 3, (0, 110, 255), -1)
+        
+        contour_pred.center.x = X[0][0]
+        contour_pred.center.y=X[1][0]
+        contour_pred.width=X[4][0]
+        contour_pred.height=X[5][0]
+        info.contour = contour_pred
+        info.detected=flag_detected
+        info.apriltag=flag_apriltag
+        info.tracking=flag_tracking
+        info_pub.publish(info)
+        rate.sleep()
+        #measurement.publish(measured_pub)
+        
+        #cv2.imshow('img',cvFrame)
+        #cv2.waitKey(1)
+        
+        #contour_pub.publish(rosFrame)
+        
+        #k = cv2.waitKey(5) & 0xff
+        #if k == 27:
+        #    break
+        #cv2.destroyAllWindows()
+        
 
     
 

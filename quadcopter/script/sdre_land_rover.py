@@ -24,8 +24,6 @@ yaw = 0.0
 
 msg = AttitudeTarget()
 
-
-
 ###     Goal in gazebo frame with origin as start, from the start point of drone
 goal = np.array([0.0, 0.0, 0.0])
 
@@ -53,7 +51,7 @@ camera_mount = 0.785398
 horizontal = 1.04719/2
 vertical = 1.04719/2
 
-vel_rover = [0.3,0,0]
+vel_rover = [1.0,0,0]
 
 A = np.array([[0, 1, 0, 0, 0, 0]
             ,[0, 0, 0, 0, 0, 0]
@@ -64,6 +62,7 @@ A = np.array([[0, 1, 0, 0, 0, 0]
 
 
 now_p = time.time()
+now = time.time()
 
 ####    msg.x in mavros is -y in gazebo
 def land():
@@ -203,9 +202,6 @@ def callback(info):
             u[2] = -15*np.pi/180
 
         
-        now = time.time()
-
-        
         ###     All quaternion info input in gazebo frame and has to be transformed to mavros frame
         #mav_roll = -u[1]
         #mav_pitch = u[2]
@@ -226,7 +222,7 @@ def callback(info):
         ##VELOCITIES HERE
 
         pub.publish(msg)
-        now_p = time.time()
+        
         #error_head_prev = error_head
 
         rospy.loginfo("States %s", X)
@@ -240,7 +236,8 @@ def callback(info):
 ###############     CHECK IF X AND Y ARE INTERCHANGED  ##########
 
 def ReceiveTar(data):
-    global goal, x, y, z, roll, pitch, yaw, camera_mount, horizontal, vertical, area, goal, goal_body, vel_rover, x_prev, y_prev, z_prev
+    now = time.time()
+    global goal, x, y, z, roll, pitch, yaw, camera_mount, horizontal, vertical, area, goal, goal_body, vel_rover, x_prev, y_prev, z_prev, now, now_p
     xt_image=data.contour.center.x
     yt_image=data.contour.center.y
     width=data.contour.width
@@ -254,9 +251,9 @@ def ReceiveTar(data):
 
     if detect==0 or ((width<50 or height<50) and abs(width-height)>25):
         goal = np.matmul(Rot_body_to_inertial, goal_body.transpose())
-        goal[0] = goal[0] + vel_rover[0]*0.1 + x_prev - x
-        goal[1] = goal[1] + vel_rover[1]*0.1 + y_prev - y
-        goal[2] = goal[2] + vel_rover[2]*0.1 + z_prev - z
+        goal[0] = goal[0] + vel_rover[0]*(now-now_p) + x_prev - x
+        goal[1] = goal[1] + vel_rover[1]*(now-now_p) + y_prev - y
+        goal[2] = goal[2] + vel_rover[2]*(now-now_p) + z_prev - z
         goal_body = np.matmul(Rot_inertial_to_body, goal.transpose())
     else:
         posn_body = ([[x]
@@ -288,7 +285,7 @@ def ReceiveTar(data):
 
         goal_body[0] = float(np.matmul(M[0], M2)/np.matmul(M[2], M2))
         goal_body[1] = float(np.matmul(M[1], M2)/np.matmul(M[2], M2))
-        goal_body[2] = 0-posn_body[2]
+        goal_body[2] = (goal_body[0]*sin(pitch) - goal_body[1]*cos(pitch)*sin(roll))/(cos(pitch)*cos(roll)) - float(posn_body[2])
         
         #goal_new_body = np.array([[float(goalx_body)]
         #                        ,[float(goaly_body)]
@@ -307,6 +304,7 @@ def ReceiveTar(data):
         #goal[0] = x + goalx*cos(yaw) - goaly*sin(yaw)
         #goal[1] = y + goalx*sin(yaw) + goaly*cos(yaw)
 
+    now_p = time.time()
     x_prev = x
     y_prev = y
     z_prev = z
