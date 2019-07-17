@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 <sdf version='1.6'>
   <model name='iris'>
-    <pose>0 0 0.194923 0 0 0</pose>
+    <pose>0 0 0.194387 0 0 0</pose><!--0.194923-->
     <link name='base_link'>
       <velocity_decay>
         <linear>0.0</linear>
@@ -23,7 +23,7 @@
         <pose>0 0 -0.08 0 0 0</pose>
         <geometry>
           <box>
-            <size>0.47 0.47 0.23</size>
+            <size>0.325 0.47 0.23</size><!-- 0.47-->
           </box>
         </geometry>
         <surface>

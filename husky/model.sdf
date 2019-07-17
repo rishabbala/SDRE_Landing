@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 <sdf version="1.3">
   <model name="husky">
-    <pose>0 0 .5 0 0 0</pose>
+    <pose>0 0 0 0 0 0</pose>
     <!-- Main Chassis -->
     <link name="base_link">
       <!-- Physics -->
@@ -331,17 +331,54 @@
       </limit></ode></physics>
     </joint>
 
-
-  <link name='red_sheet'>
+  <link name='black_sheet'>
     <inertial>
         <mass>0.2</mass>
     </inertial>
-    <collision name='red_sheet_collision'>
+    <collision name='black_sheet_collision'>
       <pose>0 0 0.2675 0 0 0</pose>
       <geometry>
         <box>
-          <size>0.75 0.75 .05</size>
+          <size>2 2 .05</size>
         </box>
+      </geometry>
+    </collision>
+    <visual name='black_sheet_visual'>
+      <material>
+          <script>
+            <name>Gazebo/Grey</name>
+            <uri>__default__</uri>
+          </script>
+      </material>
+      <pose>0 0 0.2675 0 0 0</pose>
+      <geometry>
+        <box>
+          <size>2 2 .05</size>
+        </box>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name='black_sheet_joint' type='fixed'>
+      <parent>base_link</parent>
+      <child>black_sheet</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+      </axis>
+  </joint>
+
+
+  <link name='red_sheet'>
+    <inertial>
+        <mass>0.05</mass>
+    </inertial>
+    <collision name='red_sheet_collision'>
+      <pose>0 0 0.298 0 0 0</pose>
+      <geometry>
+        <cylinder>
+            <radius>0.15</radius>
+            <length>0.005</length>
+        </cylinder>
       </geometry>
     </collision>
     <visual name='red_sheet_visual'>
@@ -351,25 +388,27 @@
           <specular>0 0 0 0</specular>
           <emissive>0 0 0 1</emissive>
       </material>
-      <pose>0 0 0.2675 0 0 0</pose>
+      <pose>0 0 0.298 0 0 0</pose>
       <geometry>
-        <box>
-          <size>0.75 0.75 .05</size>
-        </box>
+        <cylinder>
+            <radius>0.15</radius>
+            <length>0.005</length>
+        </cylinder>
       </geometry>
     </visual>
   </link>
 
   <joint name='red_sheet_joint' type='fixed'>
-      <parent>base_link</parent>
+      <parent>black_sheet</parent>
       <child>red_sheet</child>
       <axis>
         <xyz>0 0 1</xyz>
       </axis>
   </joint>
 
+
   <!-- Hokuyo Laser -->
-  <link name="hokuyo_link">
+  <!--<link name="hokuyo_link">
     <collision name="lidar_collision">
       <pose>0 0 0.3175 0 0 0</pose>
       <geometry>
@@ -423,15 +462,6 @@
     </sensor>
   </link>
 
-
-
-
-
-
-
-
-
-
   <joint name="hokuyo_joint" type="fixed">
     <parent>base_link</parent>
     <child>hokuyo_link</child>
@@ -439,7 +469,7 @@
         <xyz>0 0 1</xyz>
     </axis>
   </joint>
-
+  -->
 
 
 

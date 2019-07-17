@@ -26,8 +26,8 @@
 
   <!-- Camera mounted at 45 deg, wrt to cam line checks from -30 to 30  -->
 
-    <link name="cam_link">
-      <pose>0 0 0 0 0 0 </pose>
+  <link name="cam_link">
+    <pose>0 0 0.03 0 0.7853981633974483 0</pose>
       <inertial>
         <mass>0.01</mass>
         <inertia>
@@ -37,12 +37,12 @@
         </inertia>
       </inertial>
     <sensor name="cam" type="camera">
-      <pose>0 0 0.07 0 0.785398 0</pose>
+      <pose>0 0 0 0 0 0</pose>
       <camera>
-        <horizontal_fov>1.04719</horizontal_fov>
+        <horizontal_fov>1.0471975511965976</horizontal_fov>
         <image>
-          <width>500</width>
-          <height>500</height>
+          <width>2000</width>
+          <height>2000</height>
           <format>B8G8R8</format>
         </image>
         <clip>
