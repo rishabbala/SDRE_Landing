@@ -34,7 +34,6 @@ z = 0.0
 u1_prev = 0.0
 u2_prev = 0.0
 u3_prev = 0.0
-n_prev = 0.0
 x1_prev = 0.0
 x2_prev = 0.0
 v_roll = 0.0
@@ -45,10 +44,6 @@ v2_prev = 0.0
 i = 0
 v1 = 0.0
 v2 = 0.0
-fil1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-fil2 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-#fil3 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-#fil4 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 detect = 1
 
@@ -56,8 +51,8 @@ now_cam_p = timer()
 now_cam = timer()
 now_kal_p = timer()
 now_kal = timer()
-init = timer()
 
+####    Vert and hor fov
 hori_fov = np.pi/6 #on either side
 vert_fov = 2000*hori_fov/2000
 
@@ -95,27 +90,23 @@ P = np.array([[np.random.normal(0, 1), 0, 0, 0]
 msg = kalman()
 
 def kalman(timer):
-    global now_kal, now_kal_p, X, P, v_x, v_y, v_z, x, y, z, goal_pred, goal_pred_var, init, detect
-    #rate = rospy.Rate(200) 
-    #while not rospy.is_shutdown():
+    global now_kal, now_kal_p, X, P, v_x, v_y, v_z, x, y, z, goal_pred, goal_pred_var, detect
     del_t = 0.01
     if detect == 0:
-        #now_kal = timer()
-        
+        ####    If not detected assume no noise in kalman filter and inf noise in measurement
         Q = np.array([[np.random.normal(0, 1), 0, 0, 0]
                     ,[0, np.random.normal(0, 1), 0, 0]
                     ,[0, 0, np.random.normal(0, 1), 0]
                     ,[0, 0, 0, np.random.normal(0, 1)]])
-        #X[0] = float(X[0]) + float(X[1])*del_t
-        #X[2] = float(X[2]) + float(X[3])*del_t
     else:
         Q = np.array([[np.random.normal(0, 4), 0, 0, 0]
                     ,[0, np.random.normal(0, 1), 0, 0]
                     ,[0, 0, np.random.normal(0, 4), 0]
                     ,[0, 0, 0, np.random.normal(0, 1)]])
+
+    ####    Apply kalman filter
     v1 = float(X[1])
     v2 = float(X[3])
-    #now_kal = timer()
     A = np.array([[1, (del_t), 0, 0]
                 ,[0, 1, 0, 0]
                 ,[0, 0, 1, (del_t)]
@@ -141,19 +132,6 @@ def kalman(timer):
     X_new = X_new_pred + np.dot(KG, (np.dot(H,goal_pred) - np.dot(H,mu_exp)))
     
     X = X_new
-    #X[0] = float(X_new[0])
-    #X[1] = 0.65*float(X[1])*(now_kal-init)/(now_kal+0.001) + 0.435825*v1*(1-(now_kal-init)/(now_kal+0.001))
-    #X[2] = float(X_new[2])
-    #X[3] = 0.65*float(X[3])*(now_kal-init)/(now_kal+0.001) + 0.435825*v2*(1-(now_kal-init)/(now_kal+0.001))
-
-    #rospy.loginfo("X %s", X)
-    #rospy.loginfo("DEL_T OUT %s",del_t)
-
-    #now_kal_p = timer()
-
-    ##      initial drone ht 0.194387 changed now to 0 (IMPO)
-            ##      rover height 0.43582
-            ##      ==> landing height = 0.43583+0
     
     P = std_dev_exp - np.dot(KG, std_dev_exp)
     msg.goal.x = float(X[0])
@@ -167,7 +145,6 @@ def kalman(timer):
     msg.posn.z = z
     msg.detected = detect
     pub.publish(msg)
-        #rate.sleep()
 
 
 def ReceiveTar(data):
@@ -187,12 +164,8 @@ def ReceiveTar(data):
 
     if detect==0:
         rospy.loginfo(detect)
-        #u1_prev = x1 + (float(X[1])-v_x)*del_t
-        #u2_prev = x2 + (float(X[3])-v_y)*del_t
-        #now_cam_p = timer()
         pass
     else:
-        #rospy.loginfo("FIL %s", fil1)
         del_t = now_cam-now_cam_p
         if del_t == 0:
             pass
@@ -203,13 +176,7 @@ def ReceiveTar(data):
             x2 = 0.65*x2 + 0.35*x2_prev   
             x1_prev = x1
             x2_prev = x2
-            #w1 = x1-x
-            #w2 = x2-y
-            #v1, v2 = get_velocity(xt_image, yt_image, x1, x2, del_t, R)
-
-            #v1 = x_r + vx
-            #v2 = y_r + vy
-
+ 
             goal_pred = np.array([[x1]
                                 ,[v1]
                                 ,[x2]
@@ -218,18 +185,11 @@ def ReceiveTar(data):
             img = np.array([[x1-xn]
                         ,[x2-yn]
                         ,[0.43582]])
-            #img = np.dot(R.transpose(), img)
-            #rospy.loginfo("GOAL VEL %s %s %s %s", v1, v2, vx, vy)
-            #rospy.loginfo("GOAL POS %s %s", x1,x2)
-            #goal_pred_var = np.array([[0, 0, 0, 0]
-            #                        ,[0, 0, 0, 0]
-            #                        ,[0, 0, 0, 0]
-            #                        ,[0, 0, 0, 0]])
-            #1.1**abs(float(goal_pred[0])/(z+0.00001))+abs(v_pitch*v_roll))
+
             goal_pred_var = np.array([[np.random.normal(0, 0.3*1.1**(float(img[0])*0.25/(z+0.0001))), 0, 0, 0]
-                                    ,[0, np.random.normal(0, 1+12*(abs(v_pitch)+abs(v_roll))+0.5*abs(v_x*v_y)), 0, 0]
+                                    ,[0, np.random.normal(0, 1+12*(abs(v_pitch)+abs(v_roll))+0.5*abs(v_x*v_y)+1/(0.25+abs(z-0.43582))), 0, 0]
                                     ,[0, 0, np.random.normal(0, 0.3*1.1**(float(img[1])*0.25/(z+0.0001))), 0]
-                                    ,[0, 0, 0, np.random.normal(0, 1+12*(abs(v_pitch)+abs(v_roll))+0.5*abs(v_x*v_y))]])   
+                                    ,[0, 0, 0, np.random.normal(0, 1+12*(abs(v_pitch)+abs(v_roll))+0.5*abs(v_x*v_y)+1/(0.25+abs(z-0.43582)))]])
 
             now_cam_p = data.time
             i+=1
@@ -276,16 +236,15 @@ def get_velocity(event):
 
     w1 = float(goal_pred[0])
     w2 = float(goal_pred[2])
-    v1 = (w1-u1_prev)/dt
-    v2 = (w2-u2_prev)/dt
+    v1_n = (w1-u1_prev)/dt
+    v2_n = (w2-u2_prev)/dt
 
-    v1 = 0.6*v1+0.4*v1_prev
-    v2 = 0.6*v2+0.4*v2_prev
+    v1 = 0.6*v1_n+0.4*v1_prev
+        
+    v2 = 0.6*v2_n+0.4*v2_prev
 
     v1_prev = v1
     v2_prev = v2    
-
-    #rospy.loginfo("INFO %s %s %s", v1, w1, u1_prev)
 
     u1_prev = w1
     u2_prev = w2
@@ -293,26 +252,21 @@ def get_velocity(event):
 
 def callback(info):
     global x, y, z, roll, pitch, yaw, Rot_body_to_inertial, Rot_inertial_to_body, v_roll, v_pitch, v_yaw, v_x, v_y, v_z
-    
-    ############################        GAZEBO COORDINATE FRAME
-    ###     Positions in global gazebo frame
+
     x = info.pose.pose.position.y
     y = -info.pose.pose.position.x
     z = info.pose.pose.position.z
 
-    ###     All linear velocities are local 
     va = info.twist.twist.linear.x
     vb = info.twist.twist.linear.y
     vc = info.twist.twist.linear.z
     
-    ###     Orientations in global of mavros frame
     a1 = info.pose.pose.orientation.x
     b1 = info.pose.pose.orientation.y
     c1 = info.pose.pose.orientation.z
     d1 = info.pose.pose.orientation.w
     roll, pitch, yaw = tf.transformations.euler_from_quaternion([a1,b1,c1,d1])
 
-    ###     Orientations in gazebo frame
     yaw = yaw-np.pi/2
     if yaw<np.pi/2:
         yaw = yaw+2*np.pi/2
@@ -324,12 +278,9 @@ def callback(info):
                                     ,[-sin(pitch), cos(pitch)*sin(roll), cos(pitch)*cos(roll)]])
     Rot_inertial_to_body = Rot_body_to_inertial.transpose()
     
-    ###     All angular velocities are local
     v_roll = info.twist.twist.angular.x
     v_pitch = info.twist.twist.angular.y
     v_yaw = info.twist.twist.angular.z
-
-    ###     Convert Velocities to the global frame
 
     v2 = np.array([[v_roll]
                 ,[v_pitch]
@@ -351,7 +302,6 @@ def callback(info):
     v_z = float(v1[2])
                 
 def listener():
-    #rospy.Subscriber("/mavros/local_position/velocity_local", TwistStamped, callback_new)
     rospy.Subscriber('/landing_target_info_new', TargetInfo,ReceiveTar)
     rospy.Subscriber("/drone/mavros/local_position/odom", Odometry, callback)
     timer=rospy.Timer(rospy.Duration(10/1000.0),kalman)

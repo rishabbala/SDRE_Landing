@@ -14,14 +14,19 @@ from mavros_msgs.msg import *
 from quadcopter.msg import *
 import time
 import control.matlab as mb
+import csv
+from timeit import default_timer as timer
 
 rospy.init_node('sdre', anonymous=True)
 pub = rospy.Publisher("/drone/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=10)
+
+#posn = open('posn4.csv', 'w')
 
 roll = 0.0
 pitch = 0.0
 yaw = 0.0
 detect = 1
+now = timer()
 
 msg = AttitudeTarget()
 
@@ -33,19 +38,11 @@ goal_body = np.array([0.0, 0.0, 0.0])
 x = 0.0
 y = 0.0
 z = 0.0
+x_r = 0.0
+y_r = 0.0
 v_x = 0.0
 v_y = 0.0
-x_prev = 0.0
-y_prev = 0.0
-z_prev = 0.0
 v_z = 0.0
-area = 0.0
-
-error_head_prev = 0.0
-
-camera_mount = 0.785398
-horizontal = 1.04719/2
-vertical = 1.04719/2
 
 vel_rover = [0,0,0]
 
@@ -61,50 +58,42 @@ Rot_body_to_inertial = np.array([[cos(yaw)*cos(pitch), -sin(yaw)*cos(roll)+sin(r
                         ,[-sin(pitch), cos(pitch)*sin(roll), cos(pitch)*cos(roll)]])
 Rot_inertial_to_body = Rot_body_to_inertial.transpose()
 
-now_p = time.time()
-
-####    msg.x in mavros is -y in gazebo
-def land():
-    set_mode = rospy.ServiceProxy('/drone/mavros/set_mode', mavros_msgs.srv.SetMode)
-    print("LAND")
-    #print "set mode: ", set_mode(80,'AUTO>LAND')
-    land = rospy.ServiceProxy('/drone/mavros/cmd/land', mavros_msgs.srv.CommandTOL)
-    #print "land"
-
 
 def sdre():
     while not rospy.is_shutdown():
-        global detect, x, y, z, roll, pitch, yaw, vel_rover, vel_drone_rot, vel_drone_trans, head, now_p, error_head_prev, goal, goal_body, v_x, v_y, v_z, Rot_body_to_inertial, Rot_inertial_to_body
-        #rospy.loginfo("GOAL_GLOBAL %s", goal) 
+        now = timer()
+        global x_r, y_r, detect, x, y, z, roll, pitch, yaw, vel_rover, goal, goal_body, v_x, v_y, v_z, Rot_body_to_inertial, Rot_inertial_to_body
+        ####    Global to Body conversion for the goal
+
+        #posn.write('%f;' % float(x))
+        #posn.write('%f;' % float(z))
+        #posn.write('%f;' % float(x_r))
+        #posn.write('%f;' % float(now))
+        #posn.write('\n')
+
         goal_body[0] = goal[0] - x
         goal_body[1] = goal[1] - y
         goal_body[2] = goal[2] - z
 
-        ####    Global to Body rotation
-
         goal_body = np.dot(Rot_inertial_to_body,goal_body.transpose())
-        #rospy.loginfo("GOAL_BODY %s", goal_body) 
 
-        #vel_rover = np.dot(Rot,vel_rover)       ####    Velocity transformations to be done
-        #vel_rover_body = [vel_rover[1],vel_rover[0],vel_rover[2]]
-
+        ####    Weighting Matrices Q R
         Q = np.array([[((5*goal_body[0])**2)/abs(goal_body[2]+0.0001)+1, 0, 0, 0, 0, 0]
-                ,[0, abs(150*(0.5+abs(goal_body[2]))*(vel_rover[0]-v_x)/(0.001+0.1*abs(goal_body[0]))), 0, 0, 0, 0]
-                ,[0, 0, ((5*goal_body[1])**2)/abs(goal_body[2]+0.0001)+1, 0, 0, 0]
-                ,[0, 0, 0, abs(150*(0.5+abs(goal_body[2]))*(vel_rover[1]-v_y)/(0.001+0.1*abs(goal_body[1]))), 0, 0]
-                ,[0, 0, 0, 0, 1+(10*goal_body[2]/sqrt(0.01+0.01*(goal_body[0]**2)+0.01*(goal_body[1]**2)))**2, 0]
-                ,[0, 0, 0, 0, 0, 1/abs(goal_body[2]+0.001)]])
+                    ,[0, abs(150*(0.5+abs(goal_body[2]))*(vel_rover[0]-v_x)/(0.001+0.1*abs(goal_body[0]))), 0, 0, 0, 0]
+                    ,[0, 0, ((5*goal_body[1])**2)/abs(goal_body[2]+0.0001)+1, 0, 0, 0]
+                    ,[0, 0, 0, abs(150*(0.5+abs(goal_body[2]))*(vel_rover[1]-v_y)/(0.001+0.1*abs(goal_body[1]))), 0, 0]
+                    ,[0, 0, 0, 0, 1+(10*goal_body[2]/sqrt(0.01+0.01*(goal_body[0]**2)+0.01*(goal_body[1]**2)))**2, 0]
+                    ,[0, 0, 0, 0, 0, 1/abs(goal_body[2]+0.001)]])
 
-        R = np.array([[800, 0, 0]
+        R = np.array([[800, 0, 0]    #z - accn
                     ,[0, 75000, 0]   #Pitch
                     ,[0, 0, 75000]]) #Roll
 
-        rospy.loginfo("MATRIX %s", Q)
-
-        ###     Calculation for control done in body fixed frame
+        ####    Calculation for control done in body fixed frame
+        ###     d2(e_x)/dt2 = 0-d2(x)/dt2 so all signs inverted
         X = np.array([[goal_body[0]],[vel_rover[0]-v_x],[goal_body[1]],[vel_rover[1]-v_y],[goal_body[2]],[vel_rover[2]-v_z]])
 
-        ###     d2(e_x)/dt2 = 0-d2(x)/dt2 so all signs inverted
+
         B = np.array([[0, 0, 0], [0, -9.8, 0], [0, 0, 0], [0, 0, 9.8], [0, 0, 0], [-1, 0, 0]])
 
         P = la.solve_continuous_are(A, B, Q, R)
@@ -117,36 +106,27 @@ def sdre():
         u1 = float(u[1])
         u2 = float(u[2])
 
+        ####    Normalizing the received thrust
         u0 = (u0*1.5 + 14.7)/29.4
-        ##15 deg max cutoff at 10
+
+        ####    Restrict rotation angles to 10 deg
         if u0>1:
             u0 = 1
         if u0<0:
             u0 = 0
+
+        if u1>10*np.pi/180:
+            u1 = 10*np.pi/180
+        if u1<-10*np.pi/180:
+            u1 = -10*np.pi/180
+
+        if u2>10*np.pi/180:
+            u2 = 10*np.pi/180
+        if u2<-10*np.pi/180:
+            u2 = -10*np.pi/180
         
-        if Q[0][0]>Q[1][1]:
-            if u1>10*np.pi/180:
-                u1 = 10*np.pi/180
-            if u1<-10*np.pi/180:
-                u1 = -10*np.pi/180
-        else:
-            if u1>5*np.pi/180:
-                u1 = 5*np.pi/180
-            if u1<-5*np.pi/180:
-                u1 = -5*np.pi/180
 
-        if Q[2][2]>Q[3][3]:
-            if u2>10*np.pi/180:
-                u2 = 10*np.pi/180
-            if u2<-10*np.pi/180:
-                u2 = -10*np.pi/180
-        else:
-            if u2>5*np.pi/180:
-                u2 = 5*np.pi/180
-            if u2<-5*np.pi/180:
-                u2 = -5*np.pi/180
-
-        #rospy.loginfo("INFO %s %s", sqrt(goal_body[0]**2+goal_body[1]**2), abs(goal_body[2]))
+        ####    Start descending for small errors
         if sqrt(goal_body[0]**2+goal_body[1]**2)<0.8 and abs(goal_body[2])<1:
             rospy.loginfo("LAND")
             u0 = 0.0
@@ -154,10 +134,7 @@ def sdre():
             u2 = 0.0
 
 
-        now = time.time()
-
-        #rospy.loginfo("Inputs %s %s %s", u0, u1, u2)
-
+        ####    Convert to quaternions and publish
         quater = tf.transformations.quaternion_from_euler(u2,u1,yaw+np.pi/2) #0
         msg.header = Header()
         msg.type_mask = 0
@@ -170,13 +147,7 @@ def sdre():
         msg.body_rate.z = 0.0
         msg.thrust = u0
 
-        ##VELOCITIES HERE
-
         pub.publish(msg)
-        now_p = time.time()
-
-        #rospy.loginfo("States %s", X)
-        #rospy.loginfo("positions %s", [x,y,z])
 
         rate = rospy.Rate(100) 
         rate.sleep
@@ -184,14 +155,8 @@ def sdre():
 
 def callback(info):
     ##MUST GET HEADING
-    global x, y, z, roll, pitch, yaw, vel_rover, vel_drone_rot, vel_drone_trans, head, now_p, error_head_prev, goal, goal_body, v_x, v_y, v_z, Rot_body_to_inertial, Rot_inertial_to_body
+    global x, y, z, roll, pitch, yaw, vel_rover, vel_drone_rot, vel_drone_trans, head, error_head_prev, goal, goal_body, v_x, v_y, v_z, Rot_body_to_inertial, Rot_inertial_to_body
     
-    ############################        ARDUPILOT-MAVROS COORDINATE FRAME
-    ###     Positions in global of mavros frame
-    #x = info.pose.pose.position.x
-    #y = info.pose.pose.position.y
-    #z = info.pose.pose.position.z
-
     ###     Positions in global gazebo frame
     x = info.pose.pose.position.y
     y = -info.pose.pose.position.x
@@ -202,7 +167,7 @@ def callback(info):
     v_y = info.twist.twist.linear.y
     v_z = info.twist.twist.linear.z
     
-    ###     Orientations in global of mavros frame
+    ###     Orientations in order of rotation
     a1 = info.pose.pose.orientation.x
     b1 = info.pose.pose.orientation.y
     c1 = info.pose.pose.orientation.z
@@ -210,30 +175,31 @@ def callback(info):
 
     roll, pitch, yaw = tf.transformations.euler_from_quaternion([a1,b1,c1,d1])
 
-    ###     Orientations in gazebo frame
+    ###     Yaw in gazebo frame
     yaw = yaw-np.pi/2
     if yaw<np.pi/2:
         yaw = yaw+2*np.pi/2
     if yaw>np.pi/2:
         yaw = yaw-2*np.pi/2
-    #temp = roll
-    #roll = pitch
-    #pitch = -temp
-
-    #rospy.loginfo("ANGLE OUTSIDE %s", [yaw, pitch, roll])
 
     Rot_body_to_inertial = np.array([[cos(yaw)*cos(pitch), -sin(yaw)*cos(roll)+sin(roll)*sin(pitch)*cos(yaw), sin(yaw)*sin(roll)+cos(roll)*cos(yaw)*sin(pitch)]
                                     ,[sin(yaw)*cos(pitch), cos(yaw)*cos(roll)+sin(roll)*sin(pitch)*sin(yaw), -sin(roll)*cos(yaw)+sin(yaw)*sin(pitch)*cos(roll)]
                                     ,[-sin(pitch), cos(pitch)*sin(roll), cos(pitch)*cos(roll)]])
     Rot_inertial_to_body = Rot_body_to_inertial.transpose()
 
+###     Add integral error
+###     No land if no detect
 
 def ReceiveTar(info):
     global goal, vel_rover, Rot_inertial_to_body, detect
+
+    ##      Receive position info
     goal[0] = info.goal.x
     goal[1] = info.goal.y
     goal[2] = 0.435
     detect = info.detected
+
+    ##      Receive vel info and convert to body fixed frame
     v1 = info.vel.x
     v2 = info.vel.y
     v = np.array([[v1]
@@ -244,8 +210,14 @@ def ReceiveTar(info):
     vel_rover[1] = float(v[1])
     vel_rover[2] = float(v[2])
                 
+
+#def callback2(info):
+#    global x_r, y_r
+#    x_r = info.pose.pose.position.y
+#    y_r = -info.pose.pose.position.x
+
 def listener():
-    #rospy.Subscriber("/drone/mavros/local_position/velocity_local", TwistStamped, callback_new)
+    #rospy.Subscriber("/rover/mavros/local_position/odom", Odometry, callback2)
     rospy.Subscriber("/drone/mavros/local_position/odom", Odometry, callback)
     rospy.Subscriber('/kalman_filter', kalman, ReceiveTar)
     sdre()
@@ -255,4 +227,5 @@ if __name__ == '__main__':
     try:
         listener()
     except rospy.ROSInterruptException:
+        posn.close()
         pass

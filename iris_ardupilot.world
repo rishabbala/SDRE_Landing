@@ -123,7 +123,7 @@ LOITER> mode LAND
     </model>
 
     <model name="iris">
-      <pose> -12 0 0 0 0 0 </pose>
+      <pose> -8 0 0 0 0 0 </pose>
       <include>
         <uri>model://iris_with_standoffs_demo</uri>
          <pose> 0 0 0 0 0 0 </pose>

@@ -13,13 +13,14 @@ from quadcopter.msg import TargetInfo
 from quadcopter.msg import Contour
 from geometry_msgs.msg import Point32
 from timeit import default_timer as timer
+from nav_msgs.msg import Odometry
 
 rospy.init_node('identifier_estimate', anonymous=True)
 pub = rospy.Publisher('/landing_target_info_new', TargetInfo, queue_size=10)
 now = rospy.get_time()
 
 global info, flag_imageshow, cvFrame
-cvFrame = np.zeros((500,500,3), np.uint8)
+cvFrame = np.zeros((2000,2000,3), np.uint8)
 info = TargetInfo()
 flag_imageshow=1
 
@@ -94,6 +95,7 @@ def color_det(event):
     #    flag_imageshow = 0
     #    cv2.destroyAllWindows()
     #rate.sleep()
+
 
 def listener():
     rospy.Subscriber('/camera_on_quad/images', Image, receiveimage)

@@ -15,3 +15,7 @@ rosrun mavros mavsys -n drone/mavros rate --all 50
 rosparam set use_sim_time false
 param set ARMING_CHECK 1
 
+
+##opt
+rosrun quadcopter graph.py
+rqt_plot /rover/pose/pose/position/x

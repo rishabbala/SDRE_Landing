@@ -52,6 +52,7 @@ add_message_files(
   Contour.msg
   kalman.msg
   QR.msg
+  error.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -339,7 +339,7 @@
       <pose>0 0 0.2675 0 0 0</pose>
       <geometry>
         <box>
-          <size>2 2 .05</size>
+          <size>1.5 1.5 .05</size>
         </box>
       </geometry>
     </collision>
@@ -353,7 +353,7 @@
       <pose>0 0 0.2675 0 0 0</pose>
       <geometry>
         <box>
-          <size>2 2 .05</size>
+          <size>1.5 1.5 .05</size>
         </box>
       </geometry>
     </visual>
@@ -367,16 +367,54 @@
       </axis>
   </joint>
 
+  <!--<link name='blue_sheet'>
+    <inertial>
+        <mass>0.05</mass>
+    </inertial>
+    <collision name='blue_sheet_collision'>
+      <pose>0 0 0.298 0 0 0</pose>
+      <geometry>
+        <cylinder>
+            <radius>0.75</radius>
+            <length>0.005</length>
+        </cylinder>
+      </geometry>
+    </collision>
+    <visual name='blue_sheet_visual'>
+       <material>
+          <script>
+            <name>Gazebo/Blue</name>
+            <uri>__default__</uri>
+          </script>
+      </material>
+      <pose>0 0 0.298 0 0 0</pose>
+      <geometry>
+        <cylinder>
+            <radius>0.75</radius>
+            <length>0.005</length>
+        </cylinder>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name='blue_sheet_joint' type='fixed'>
+      <parent>black_sheet</parent>
+      <child>blue_sheet</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+      </axis>
+  </joint>-->
+
 
   <link name='red_sheet'>
     <inertial>
         <mass>0.05</mass>
     </inertial>
     <collision name='red_sheet_collision'>
-      <pose>0 0 0.298 0 0 0</pose>
+      <pose>0.25 0 0.298 0 0 0</pose>
       <geometry>
         <cylinder>
-            <radius>0.15</radius>
+            <radius>0.25</radius>
             <length>0.005</length>
         </cylinder>
       </geometry>
@@ -388,10 +426,10 @@
           <specular>0 0 0 0</specular>
           <emissive>0 0 0 1</emissive>
       </material>
-      <pose>0 0 0.298 0 0 0</pose>
+      <pose>0.25 0 0.298 0 0 0</pose>
       <geometry>
         <cylinder>
-            <radius>0.15</radius>
+            <radius>0.25</radius>
             <length>0.005</length>
         </cylinder>
       </geometry>
