@@ -144,8 +144,8 @@ def kalman(timer):
     P = std_dev_exp - np.dot(KG, std_dev_exp)
 
     #Send the dara
-    msg.goal.x = float(X[0])
-    msg.goal.y = float(X[2])
+    msg.goal.x = float(X[0])-x
+    msg.goal.y = float(X[2])-y
     msg.goal.z = 0.43582
     msg.vel.x = float(X[1])
     msg.vel.y = float(X[3])
@@ -286,8 +286,8 @@ def callback(info):
 
     #Get the data from mavros
     #!!!!!!!!!!!        MAKE SURE TO CHECK THE AXES AS THEY ARE ALL INVERTED IN ALL OF MY CODES      !!!!!!!!!!!!!!!!
-    x = info.pose.pose.position.y
-    y = -info.pose.pose.position.x
+    x = info.pose.pose.position.x
+    y = info.pose.pose.position.y
     z = info.pose.pose.position.z
 
     va = info.twist.twist.linear.x
@@ -300,7 +300,7 @@ def callback(info):
     d1 = info.pose.pose.orientation.w
     roll, pitch, yaw = tf.transformations.euler_from_quaternion([a1,b1,c1,d1])
 
-    yaw = yaw-np.pi/2
+    #yaw = yaw-np.pi/2
     if yaw<np.pi/2:
         yaw = yaw+2*np.pi/2
     if yaw>np.pi/2:
