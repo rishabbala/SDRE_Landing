@@ -17,7 +17,7 @@ import csv
 from timeit import default_timer as timer
 
 rospy.init_node('sdre', anonymous=True)
-pub = rospy.Publisher("/drone/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=10)
+pub = rospy.Publisher("/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=10)
 
 #posn = open('posn4.csv', 'w')
 
@@ -61,6 +61,22 @@ Rot_inertial_to_body = Rot_body_to_inertial.transpose()
 def sdre():
     while not rospy.is_shutdown():
         now = timer()
+        goal[0] = 8
+        goal[1] = 15
+        goal[2] = 0
+        detect = 1
+
+        ##      Receive vel info and convert to body fixed frame
+        v1 = 0.0
+        v2 = 0.0
+        v = np.array([[v1]
+                    ,[v2]
+                    ,[0.0]])
+        #print("Roll_in = ", roll)
+        v = np.dot(Rot_inertial_to_body, v)
+        vel_rover[0] = 0.0
+        vel_rover[1] = 0.0
+        vel_rover[2] = 0.0
         global x_r, y_r, detect, x, y, z, roll, pitch, yaw, vel_rover, goal, goal_body, v_x, v_y, v_z, Rot_body_to_inertial, Rot_inertial_to_body
         ####    Global to Body conversion for the goal
 
@@ -134,7 +150,7 @@ def sdre():
 
 
         ####    Convert to quaternions and publish
-        quater = tf.transformations.quaternion_from_euler(u2,u1,yaw+np.pi/2) #0
+        quater = tf.transformations.quaternion_from_euler(u2,u1,yaw) #0
         msg.header = Header()
         msg.type_mask = 0
         msg.orientation.x = quater[0]
@@ -148,6 +164,10 @@ def sdre():
 
         pub.publish(msg)
 
+
+        #print(X)
+        #print("u2roll = ", u2)
+        #print("Pitch = ", u1,pitch)
         rate = rospy.Rate(100) 
         rate.sleep
 
@@ -173,6 +193,7 @@ def callback(info):
     d1 = info.pose.pose.orientation.w
 
     roll, pitch, yaw = tf.transformations.euler_from_quaternion([a1,b1,c1,d1])
+    #print("Roll_call = ", roll)
 
     ###     Yaw in gazebo frame
     #yaw = yaw-np.pi/2
@@ -189,18 +210,19 @@ def callback(info):
 ###     Add integral error
 ###     No land if no detect
 
+'''
 def ReceiveTar(info):
     global goal, vel_rover, Rot_inertial_to_body, detect, x, y, v_x, v_y
 
     ##      Receive position info
-    goal[0] = info.goal.x+x
-    goal[1] = info.goal.y+y
-    goal[2] = 0.435
-    detect = info.detected
+    goal[0] = 8
+    goal[1] = 0
+    goal[2] = 0
+    detect = 1
 
     ##      Receive vel info and convert to body fixed frame
-    v1 = info.vel.x
-    v2 = info.vel.y
+    v1 = 0.0
+    v2 = 0.0
     v = np.array([[v1]
                 ,[v2]
                 ,[0.0]])
@@ -208,7 +230,8 @@ def ReceiveTar(info):
     vel_rover[0] = float(v[0])
     vel_rover[1] = float(v[1])
     vel_rover[2] = float(v[2])
-                
+         
+'''       
 
 #def callback2(info):
 #    global x_r, y_r
@@ -217,8 +240,8 @@ def ReceiveTar(info):
 
 def listener():
     #rospy.Subscriber("/rover/mavros/local_position/odom", Odometry, callback2)
-    rospy.Subscriber("/drone/mavros/local_position/odom", Odometry, callback)
-    rospy.Subscriber('/kalman_filter', kalman, ReceiveTar)
+    rospy.Subscriber("/mavros/local_position/odom", Odometry, callback)
+    #rospy.Subscriber('/kalman_filter', kalman, ReceiveTar)
     sdre()
     rospy.spin()
 

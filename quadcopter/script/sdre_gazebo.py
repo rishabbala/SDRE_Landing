@@ -8,7 +8,6 @@ import mavros_msgs.srv
 from mavros_msgs.msg import AttitudeTarget
 from nav_msgs.msg import Odometry
 from std_msgs.msg import *
-from test.msg import *
 from geometry_msgs.msg import *
 from mavros_msgs.msg import *
 from quadcopter.msg import *
