@@ -134,7 +134,7 @@ def sdre():
 
 
         ####    Convert to quaternions and publish
-        quater = tf.transformations.quaternion_from_euler(u2,u1,yaw+np.pi/2) #0
+        quater = tf.transformations.quaternion_from_euler(u2,u1,yaw) #0
         msg.header = Header()
         msg.type_mask = 0
         msg.orientation.x = quater[0]
