@@ -157,7 +157,7 @@ def callback(info):
     roll, pitch, yaw = tf.transformations.euler_from_quaternion([a1,b1,c1,d1])
 
     ###     Yaw in gazebo frame
-    #yaw = yaw-np.pi/2
+    yaw = yaw-np.pi/2
     #if yaw<np.pi/2:
     #    yaw = yaw+2*np.pi/2
     #if yaw>np.pi/2:
