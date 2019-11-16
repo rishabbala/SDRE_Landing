@@ -1,6 +1,8 @@
 # Co-operative-Landing
 IIITD Summer Intern 2019
 
+Our research has been submitted to ECC (European Control Conference). The abstract can be found here: [ECC Abstract](https://drive.google.com/open?id=1kD0Vz8dPqv_ddnVbtW341qsNOoKzaZ25 "View")
+
 
 quadcopter folder for codes in the workspace
 iris_standoffs_demo : place this in you gazebo models path. Changed sdf for adding camera and publishing images as ros topic
@@ -31,3 +33,12 @@ Codes:
 ### Dont run used for plotting data
 * rosrun quadcopter graph.py
 * rqt_plot /rover/pose/pose/position/x
+
+
+In this project we use State Dependent Ricatti Equation (SDRE) based control to land a quadrotor on a moving target. We assume that the rover does not have GPS data, and no means of communication to the drone. We use an onboard camera to detect ande estimate the position and velocity of the drone with a Kalman filter, and take appropriate control
+
+A video showing the quadrotor landing on a rover moving at 3m/s in a linear manner:
+[Video for Landing on 3m/s target](https://drive.google.com/open?id=16CE4sSi6cS4Grk4E-FsCJQq4ePsW1oYf "Click to play")
+
+A video showing the quadrotor landing on a rover in a curved path with varying velocities:
+[Video for Landing target moving in a curved path](https://drive.google.com/open?id=1Wiolx_fjBPQhqBEMf5C5C_19rhqYbeJZ "Click to play")
