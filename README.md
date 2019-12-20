@@ -1,7 +1,7 @@
 # Co-operative-Landing
 IIITD Summer Intern 2019
 
-Our research has been submitted to ECC (European Control Conference). The abstract can be found here: [ECC Abstract](https://drive.google.com/open?id=1kD0Vz8dPqv_ddnVbtW341qsNOoKzaZ25 "View")
+Our research has been submitted to ECC (European Control Conference).
 
 
 quadcopter folder for codes in the workspace
